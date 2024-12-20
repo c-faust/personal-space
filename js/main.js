@@ -112,21 +112,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 流星效果
-    function createMeteor() {
-        const meteorShower = document.querySelector('.meteor-shower');
+    // 修改流星生成函数以支持不同部分
+    function createMeteor(container, className = '') {
+        const meteorShower = container.querySelector('.meteor-shower');
+        if (!meteorShower) return;
+        
         const meteor = document.createElement('div');
-        meteor.className = 'meteor';
+        meteor.className = 'meteor ' + className;
         
         // 随机起始位置
         const startX = Math.random() * window.innerWidth;
-        const startY = -50; // 从屏幕顶部开始
+        const startY = -50;
         
-        // 随机大小
+        // 随机大小和持续时间
         const size = Math.random() * 2 + 1;
-        
-        // 随机动画持续时间
-        const duration = Math.random() * 1 + 0.5;
+        const duration = Math.random() * 1.5 + 0.5;
         
         meteor.style.cssText = `
             left: ${startX}px;
@@ -138,28 +138,34 @@ document.addEventListener('DOMContentLoaded', () => {
         
         meteorShower.appendChild(meteor);
         
-        // 动画结束后移除流星
         meteor.addEventListener('animationend', () => {
             meteor.remove();
         });
     }
 
-    // 定期创建新的流星
-    function startMeteorShower() {
-        // 初始创建几个流星
-        for (let i = 0; i < 5; i++) {
-            setTimeout(createMeteor, Math.random() * 1500);
+    // 为特定部分启动流星效果
+    function startSectionMeteors(sectionId, interval = 2000, probability = 0.5) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+
+        // 初始化几个流星
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                createMeteor(section, `${sectionId}-meteor`);
+            }, Math.random() * 1500);
         }
         
         // 持续创建新的流星
         setInterval(() => {
-            if (Math.random() > 0.5) { // 50%的概率创建新流星
-                createMeteor();
+            if (Math.random() > probability) {
+                createMeteor(section, `${sectionId}-meteor`);
             }
-        }, 800);
+        }, interval);
     }
 
-    startMeteorShower();
+    // 在 DOMContentLoaded 事件中启动所有流星效果
+    startSectionMeteors('about', 2500, 0.6);  // 关于我部分，较少的流星
+    startSectionMeteors('blog', 2000, 0.5);   // 博客部分，中等数量的流星
 });
 
 // 平滑滚动
