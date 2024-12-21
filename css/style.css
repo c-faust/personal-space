@@ -217,11 +217,15 @@ body {
     transform: scale(1.05);
 }
 
-/* 留言板样式 */
+/* 留言板样式优化 */
 .guestbook-container {
     max-width: 800px;
     margin: 0 auto;
     padding: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 #message-form {
@@ -233,25 +237,66 @@ body {
 
 #message-form input,
 #message-form textarea {
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
     font-size: 1rem;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+#message-form input::placeholder,
+#message-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 #message-form button {
-    padding: 0.8rem;
-    background: #007AFF;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 1rem;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    backdrop-filter: blur(4px);
 }
 
 #message-form button:hover {
-    background: #0056b3;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* 添加留言板背景 */
+#guestbook {
+    background: linear-gradient(to bottom, #2c3e50, #3498db);
+    position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+#guestbook::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 100px 100px, #ffffff, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 200px 200px, #ffffff, rgba(0, 0, 0, 0));
+    background-repeat: repeat;
+    background-size: 300px 300px;
+    animation: twinkle 4s infinite;
+    opacity: 0.3;
+    top: 0;
+    left: 0;
+}
+
+#guestbook h2 {
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 2;
 }
 
 /* 通用section样式 */
@@ -723,5 +768,18 @@ html {
 #blog h2 {
     position: relative;
     z-index: 2;
+}
+
+/* 添加到留言板样式部分 */
+#message-form button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    margin-bottom: 1rem;
 }
   

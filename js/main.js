@@ -18,45 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const titleElement = document.querySelector('.typing-effect');
     typeEffect(titleElement, '欢迎来到我的个人空间');
 
-    // 留言板功能
-    const messageForm = document.getElementById('message-form');
-    const messagesContainer = document.getElementById('messages-container');
-
-    // 从localStorage获取已存在的留言
-    const messages = JSON.parse(localStorage.getItem('messages')) || [];
-
-    // 显示已有留言
-    function displayMessages() {
-        messagesContainer.innerHTML = messages.map(msg => `
-            <div class="message">
-                <h4>${msg.name}</h4>
-                <p>${msg.message}</p>
-                <small>${msg.date}</small>
-            </div>
-        `).join('');
-    }
-
-    // 提交新留言
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const message = document.getElementById('message').value;
-
-        const newMessage = {
-            name,
-            message,
-            date: new Date().toLocaleString()
-        };
-
-        messages.unshift(newMessage);
-        localStorage.setItem('messages', JSON.stringify(messages));
-        
-        displayMessages();
-        messageForm.reset();
-    });
-
-    // 初始显示留言
-    displayMessages();
+    // 留言板功能增强
+    initGuestbook();
 
     // 深色模式切换
     const themeToggle = document.getElementById('theme-toggle');
@@ -225,4 +188,198 @@ const observer = new IntersectionObserver((entries, observer) => {
 
 document.querySelectorAll('.section').forEach(section => {
     observer.observe(section);
-}); 
+});
+
+// 留言板功能增强
+function initGuestbook() {
+    const JSONBIN_BIN_ID = '6766d0dce41b4d34e4691d94';
+    const JSONBIN_API_KEY = '$2a$10$5L0KBFztkRjOUwQ.A2Z6s.VwLEUFdUFwR7w5GjXyJA4PbCYWZY5Xi';
+    const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+    const messageForm = document.getElementById('message-form');
+    const messagesContainer = document.getElementById('messages-container');
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.textContent = '加载中...';
+    
+    // 从服务器获取留言
+    async function fetchMessages() {
+        try {
+            messagesContainer.appendChild(loadingIndicator);
+            const response = await fetch(JSONBIN_URL, {
+                headers: {
+                    'X-Master-Key': JSONBIN_API_KEY
+                }
+            });
+            if (!response.ok) throw new Error('获取留言失败');
+            const data = await response.json();
+            return data.record.messages || [];
+        } catch (error) {
+            console.error('获取留言失败:', error);
+            showError('获取留言失败，请稍后重试');
+            return [];
+        } finally {
+            loadingIndicator.remove();
+        }
+    }
+
+    // 保存留言到服务器
+    async function saveMessages(messages) {
+        try {
+            const response = await fetch(JSONBIN_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': JSONBIN_API_KEY
+                },
+                body: JSON.stringify({ messages })
+            });
+            if (!response.ok) throw new Error('保存留言失败');
+            return true;
+        } catch (error) {
+            console.error('保存留言失败:', error);
+            showError('保存留言失败，请稍后重试');
+            return false;
+        }
+    }
+
+    // 显示留言
+    function displayMessages(messages) {
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="no-messages">还没有留言，来说点什么吧~</div>';
+            return;
+        }
+
+        messagesContainer.innerHTML = messages.map((msg, index) => `
+            <div class="message" style="animation: fadeIn 0.5s ease-out ${index * 0.1}s both;">
+                <h4>${escapeHtml(msg.name)}</h4>
+                <p>${escapeHtml(msg.message)}</p>
+                <small>${msg.date}</small>
+            </div>
+        `).join('');
+    }
+
+    // HTML转义函数，防止XSS攻击
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // 显示成功提示
+    function showSuccess(message) {
+        const successMessage = document.createElement('div');
+        successMessage.className = 'message-toast success';
+        successMessage.textContent = message;
+        document.body.appendChild(successMessage);
+        setTimeout(() => successMessage.remove(), 2000);
+    }
+
+    // 显示错误提示
+    function showError(message) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message-toast error';
+        errorMessage.textContent = message;
+        document.body.appendChild(errorMessage);
+        setTimeout(() => errorMessage.remove(), 3000);
+    }
+
+    // 提交新留言
+    messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('name');
+        const messageInput = document.getElementById('message');
+        const submitButton = messageForm.querySelector('button[type="submit"]');
+
+        if (!nameInput.value.trim() || !messageInput.value.trim()) {
+            showError('请填写名字和留言内容');
+            return;
+        }
+
+        // 禁用提交按钮防止重复提交
+        submitButton.disabled = true;
+        submitButton.textContent = '提交中...';
+
+        const newMessage = {
+            name: nameInput.value.trim(),
+            message: messageInput.value.trim(),
+            date: new Date().toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        };
+
+        try {
+            // 获取现有留言
+            const messages = await fetchMessages();
+            messages.unshift(newMessage);
+
+            // 保存到服务器
+            const success = await saveMessages(messages);
+            if (success) {
+                displayMessages(messages);
+                messageForm.reset();
+                showSuccess('留言成功！');
+            }
+        } catch (error) {
+            showError('提交失败，请稍后重试');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = '发送留言';
+        }
+    });
+
+    // 添加样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .loading-indicator {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .no-messages {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+
+        .message-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            animation: fadeInOut 2s forwards;
+        }
+
+        .message-toast.success {
+            background: rgba(46, 204, 113, 0.9);
+        }
+
+        .message-toast.error {
+            background: rgba(231, 76, 60, 0.9);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            20% { opacity: 1; transform: translate(-50%, 0); }
+            80% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 初始加载留言
+    fetchMessages().then(displayMessages);
+} 
